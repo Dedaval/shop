@@ -2,38 +2,40 @@
 define('EMAIL', 'email');
 define('PASSWORD', 'password');
 define('TOKEN', 'token');
-define('NAME', 'name');
+define('TITLE', 'title');
 define('DESCRIPTION', 'description');
 define('AMOUNT', 'amount');
+define('CURRENCY', 'currency');
 define('MIN_CHARACTERS_PASSWORD', 8);
-define('MIN_CHARACTERS_NAME', 3);
-define('MIN_CHARACTERS_DESCRIPTION', 10);
+define('MIN_CHARACTERS_TITLE', 3);
 define('MIN_AMOUNT', 0);
 define('FIELD', 'field');
 define('MESSAGE', 'message');
-define('ID_ARTICLE', 'article');
 define('CODE', 'code');
 define('ERRORS', 'errors');
 define('SERVER', 'server');
+define('ARTICLE', 'article');
+define('CATEGORIE', 'categorie');
+define('BASE_TOKEN', 'Token ');
+define('PRICE', 'price');
+define('ID_ARTICLE', 'idArticle');
+define('ID_CATEGORIE', 'idcategorie');
+define('PARAMETER', 'parameter');
 function emailValidate(string $email): bool
 {
     return filter_var($email, FILTER_VALIDATE_EMAIL);
 }
 function passwordValidate(string $password): bool
 {
-    return $password >= MIN_CHARACTERS_PASSWORD;
+    return strlen($password) >= MIN_CHARACTERS_PASSWORD;
 }
-function generateToken($length = 32): array
+function generateToken($length = 32): string
 {
-    return [CODE => 201, TOKEN => md5(random_bytes($length))];
+    return md5(random_bytes($length));
 }
-function nameValidate(string $name): bool
+function titleValidate(string $title): bool
 {
-    return strlen($name) >= MIN_CHARACTERS_NAME;
-}
-function descriptionValidate(string $description): bool
-{
-    return strlen($description) >= MIN_CHARACTERS_DESCRIPTION;
+    return strlen($title) >= MIN_CHARACTERS_TITLE;
 }
 function amountValidate($amount): bool
 {
@@ -43,16 +45,64 @@ function sendError(array $result): void
 {
     if (empty($result))
         return;
-    foreach ($result as $error) {
-        http_response_code($error[CODE]);
-        echo json_encode($error[ERRORS]);
-    }
+    http_response_code(400);
+    echo json_encode(array_merge(...array_column($result, ERRORS)));
     exit;
 }
+
 function getElementInHeader(string $key): ?string
 {
     $headers = apache_request_headers();
-    if (isset($headers[$key]))
-        return $headers[$key];
+    return $headers[$key] ?? null;
+}
+function getToken($token): string
+{
+    if (str_contains($token, BASE_TOKEN))
+        return str_replace(BASE_TOKEN, '', $token);
     return null;
+}
+function errorEmpty(array $requiredField, array $search): array
+{
+    $errors = [];
+    foreach ($requiredField as $field) {
+        if (empty($search[$field])) {
+            $errors[] = [
+                CODE => 400,
+                ERRORS => [
+                    [FIELD => $field, MESSAGE => "invalid.format"]
+                ]
+            ];
+        }
+    }
+    return $errors;
+}
+function sendResultDb(array $dbResult, int $code, ?string $key, bool $withKey = true): void
+{
+    if ($dbResult[CODE] === $code) {
+        http_response_code(is_null($key) ? 204 : $code);
+        if ($key && isset($dbResult[$key]))
+            echo json_encode($withKey ? [$key => $dbResult[$key]] : $dbResult[$key]);
+        exit;
+    }
+    http_response_code($dbResult[CODE]);
+    echo json_encode($dbResult[ERRORS]);
+    exit;
+}
+function tokenInvalide(): array
+{
+    return [
+        CODE => 401,
+        ERRORS => [
+            [MESSAGE => "invalid.format"]
+        ]
+    ];
+}
+function invalide_format(?string $field): array
+{
+    return [
+        CODE => 400,
+        ERRORS => [
+            [is_null($field) ? '' : FIELD => $field,  MESSAGE => "invalid.format"]
+        ]
+    ];
 }

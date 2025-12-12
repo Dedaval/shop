@@ -1,0 +1,11 @@
+RewriteEngine On
+RewriteBase /aweb2/magasin/
+
+# Si ce n'est pas un dossier
+RewriteCond %{REQUEST_FILENAME} !-d
+# Si ce n'est pas un fichier
+RewriteCond %{REQUEST_FILENAME} !-f
+# Alors on redirige vers le fichier .php correspondant
+RewriteRule ^([^/]+)/?$ $1.php [L,QSA]
+# Route /ad/{id} to ad.php?idAd={id}
+RewriteRule ^ad/([0-9]+)/?$ ad.php?idAd=$1 [L,QSA]

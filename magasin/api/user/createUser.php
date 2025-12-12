@@ -1,37 +1,20 @@
 <?php
-require_once 'utils.php';
-require_once 'database/dbFunction.php';
-
-header('Access-Control-Allow-Origin: *');
-header('Content-Type: application/json');
-
+include '../../teamplates/header.php';
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Access-Control-Allow-Headers: *');
     header('Access-Control-Allow-Methods: OPTIONS, POST');
     http_response_code(200);
     exit;
 }
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode([ERRORS => 'Method no allow']);
+    echo json_encode(invalide_format($field));
     exit;
 }
-
+var_dump(invalide_format(null));
 $data = json_decode(file_get_contents('php://input'), true);
-$errors = [];
 
-$requiredField = [EMAIL, PASSWORD];
-foreach ($requiredField as $field) {
-    if (empty($data[$field])) {
-        $errors[] = [
-            CODE => 400,
-            ERRORS => [
-                [FIELD => $field, MESSAGE => "invalid.format"]
-            ]
-        ];
-    }
-}
+$errors = errorEmpty([EMAIL, PASSWORD], $data);
 sendError($errors);
 
 if (!emailValidate($data[EMAIL])) {
@@ -53,10 +36,4 @@ if (!passwordValidate($data[PASSWORD])) {
 sendError($errors);
 
 $dbResult = createUserDb($data);
-if ($dbResult[CODE] === 201) {
-    http_response_code(201);
-    echo json_encode([TOKEN => $dbResult[TOKEN][TOKEN]]);
-    exit;
-}
-http_response_code($dbResult[CODE]);
-echo json_encode([$dbResult[ERRORS]]);
+sendResultDb($dbResult, 201, TOKEN ?? null);
